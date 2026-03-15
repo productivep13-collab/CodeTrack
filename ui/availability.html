@@ -1,0 +1,138 @@
+<div class="dashboard-layout">
+  <aside class="sidebar">...</aside>
+  
+  <main class="main-content">
+    <h1>Set Your Availability</h1>
+    
+    <!-- Calendar Container -->
+    <div id="availability-calendar"></div>
+    
+    <!-- Controls -->
+    <div class="availability-controls">
+      <button id="add-slot-btn" class="btn-primary">
+        + Add Time Slot
+      </button>
+      
+      <div class="sync-toggle">
+        <input type="checkbox" id="google-sync" name="google-sync">
+        <label for="google-sync">Sync with Google Calendar</label>
+      </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="instruction-note">
+      <p>Clients will only see available slots based on this schedule.</p>
+    </div>
+    
+    <!-- Save Button -->
+    <button id="save-availability" class="btn-primary btn-large">
+      Save Changes
+    </button>
+  </main>
+</div>
+
+<!-- Add Slot Modal -->
+<div id="slot-modal" class="modal">
+  <div class="modal-content">
+    <h3>Add Time Slot</h3>
+    
+    <form id="slot-form">
+      <!-- Day Selection -->
+      <div class="form-group">
+        <label>Days</label>
+        <div class="day-selector">
+          <label><input type="checkbox" name="days" value="mon"> Mon</label>
+          <label><input type="checkbox" name="days" value="tue"> Tue</label>
+          <label><input type="checkbox" name="days" value="wed"> Wed</label>
+          <label><input type="checkbox" name="days" value="thu"> Thu</label>
+          <label><input type="checkbox" name="days" value="fri"> Fri</label>
+          <label><input type="checkbox" name="days" value="sat"> Sat</label>
+          <label><input type="checkbox" name="days" value="sun"> Sun</label>
+        </div>
+      </div>
+      
+      <!-- Time Range -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Time</label>
+          <input type="time" name="start_time" value="09:00" required>
+        </div>
+        <div class="form-group">
+          <label>End Time</label>
+          <input type="time" name="end_time" value="17:00" required>
+        </div>
+      </div>
+      
+      <!-- Duration & Buffer -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Meeting Duration</label>
+          <select name="duration">
+            <option value="15">15 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Buffer Between Meetings</label>
+          <select name="buffer">
+            <option value="0">No buffer</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15" selected>15 minutes</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Repeat Options -->
+      <div class="form-group">
+        <label>Repeat</label>
+        <select name="repeat">
+          <option value="none">Does not repeat</option>
+          <option value="weekly" selected>Weekly</option>
+          <option value="weekdays">Every weekday (Mon-Fri)</option>
+        </select>
+      </div>
+      
+      <!-- Modal Actions -->
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancel-slot">Cancel</button>
+        <button type="submit" class="btn-primary">Save Slot</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Using FullCalendar or similar
+document.addEventListener('DOMContentLoaded', function() {
+  const calendar = new FullCalendar.Calendar(
+    document.getElementById('availability-calendar'), {
+      initialView: 'timeGridWeek',
+      slotDuration: '00:30:00',
+      events: '/api/availability', // Fetch existing slots
+      selectable: true,
+      select: function(info) {
+        // Open modal with pre-filled times
+        openSlotModal(info.start, info.end);
+      }
+    }
+  );
+  calendar.render();
+});
+
+// Save all availability
+document.getElementById('save-availability').addEventListener('click', () => {
+  const slots = calendar.getEvents().map(event => ({
+    start: event.start.toISOString(),
+    end: event.end.toISOString(),
+    days: event.extendedProps.days
+  }));
+  
+  fetch('/api/availability', {
+    method: 'PUT',
+    body: JSON.stringify({ slots })
+  });
+});
+</script>

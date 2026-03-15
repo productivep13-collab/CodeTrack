@@ -1,0 +1,3 @@
+python -m venv venv --> second venv is the name of the folder
+
+npm create vite@latest frontend
