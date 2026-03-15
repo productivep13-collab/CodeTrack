@@ -30,7 +30,7 @@ export default function ProjectView() {
     
     async function fetchProject() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/getproject', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/getproject', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -52,7 +52,7 @@ export default function ProjectView() {
     
     async function fetchChatHistory() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/get-chat-history', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/get-chat-history', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -79,7 +79,7 @@ export default function ProjectView() {
         setChatHistory(prev => [...prev, { question: q, answer: null, created_at: new Date().toISOString() }]);
         
         try {
-            const response = await fetch('http://127.0.0.1:8000/ask-ai', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/ask-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -115,7 +115,7 @@ export default function ProjectView() {
         }
         
         try {
-            const response = await fetch('http://127.0.0.1:8000/addmember', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/addmember', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -145,7 +145,7 @@ export default function ProjectView() {
     async function refreshCommits() {
         setRefreshing(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/refresh-commits', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/refresh-commits', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -346,7 +346,7 @@ export default function ProjectView() {
                                     onClick={async () => {
                                         setRefreshing(true);
                                         try {
-                                            const response = await fetch('http://127.0.0.1:8000/reanalyze-project', {
+                                            const response = await fetch('https://codetrack-10l2.onrender.com/reanalyze-project', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ token, project_id: parseInt(id) })

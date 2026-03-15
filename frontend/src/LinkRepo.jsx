@@ -12,7 +12,7 @@ export default function LinkRepo({ projectId, token, onSuccess, onCancel }) {
     
     async function fetchRepos() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/getallrepos', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/getallrepos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
@@ -35,7 +35,7 @@ export default function LinkRepo({ projectId, token, onSuccess, onCancel }) {
         setSubmitting(true);
         
         try {
-            const response = await fetch('http://127.0.0.1:8000/link-repo', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/link-repo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

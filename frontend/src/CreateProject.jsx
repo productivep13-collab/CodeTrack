@@ -30,7 +30,7 @@ export default function CreateProject() {
     async function fetchRepos() {
         setLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/getallrepos', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/getallrepos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
@@ -54,7 +54,7 @@ async function createProject() {
     setLoading(true);
     
     try {
-        const response = await fetch('http://127.0.0.1:8000/createproject', {
+        const response = await fetch('https://codetrack-10l2.onrender.com/createproject', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -18,7 +18,7 @@ export default function Login() {
             
             window.history.replaceState({}, '', '/login');
             
-            fetch('http://localhost:8000/auth/github', {
+            fetch('https://codetrack-10l2.onrender.com/auth/github', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })
@@ -46,7 +46,7 @@ export default function Login() {
     
     const handleGoogleSuccess = async (credentialResponse) => {
         const decoded = jwtDecode(credentialResponse.credential);
-        const response = await fetch('http://localhost:8000/auth/google', {
+        const response = await fetch('https://codetrack-10l2.onrender.com/auth/google', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: decoded.email })
@@ -61,7 +61,7 @@ export default function Login() {
     };
 
     const handleGitHubLogin = async () => {
-        const response = await fetch('http://localhost:8000/auth/github/login');
+        const response = await fetch('https://codetrack-10l2.onrender.com/auth/github/login');
         const data = await response.json();
         window.location.href = data.url;
     };

@@ -53,7 +53,7 @@ export default function CoderLog2() {
         setSubmitting(true);
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/semiauth`, {
+            const response = await fetch(`https://codetrack-10l2.onrender.com/semiauth`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, role, token: currentToken })

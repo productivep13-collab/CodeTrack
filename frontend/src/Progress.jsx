@@ -5,7 +5,7 @@ export default function Progress(){
     
     useEffect(()=>{
         async function call(){
-            const res = await fetch("http://127.0.0.1:8000/getallcommits")
+            const res = await fetch("https://codetrack-10l2.onrender.com/getallcommits")
             const r = await res.json()
             setSome(r)
         }

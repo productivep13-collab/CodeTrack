@@ -44,7 +44,7 @@ export default function Clientdashboard() {
 
     async function fetchProject() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/getproject', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/getproject', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, project_id: parseInt(id) })
@@ -60,7 +60,7 @@ export default function Clientdashboard() {
 
     async function fetchChatHistory() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/get-chat-history', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/get-chat-history', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, project_id: parseInt(id) })
@@ -77,7 +77,7 @@ export default function Clientdashboard() {
         setChatLoading(true);
         setChatHistory(prev => [...prev, { question: q, answer: null, created_at: new Date().toISOString() }]);
         try {
-            const response = await fetch('http://127.0.0.1:8000/ask-ai', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/ask-ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, project_id: parseInt(id), question: q })
@@ -102,7 +102,7 @@ export default function Clientdashboard() {
     async function refreshData() {
         setRefreshing(true);
         try {
-            const res = await fetch('http://127.0.0.1:8000/refresh-commits', {
+            const res = await fetch('https://codetrack-10l2.onrender.com/refresh-commits', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, project_id: parseInt(id) })

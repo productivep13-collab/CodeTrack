@@ -19,7 +19,7 @@ export default function Projectviewrouter() {
     
     async function fetchUserRole() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/auth/me', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/auth/me', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
@@ -37,7 +37,7 @@ export default function Projectviewrouter() {
     
     async function checkRepoStatus() {
         try {
-            const response = await fetch('http://127.0.0.1:8000/check-repo-status', {
+            const response = await fetch('https://codetrack-10l2.onrender.com/check-repo-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

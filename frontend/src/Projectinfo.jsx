@@ -11,7 +11,7 @@ console.log(proid)
   const token = localStorage.getItem('token');
 
 async function addmemeber(){
-    const response = await fetch(`http://127.0.0.1:8000/addmember`, {
+    const response = await fetch(`https://codetrack-10l2.onrender.com/addmember`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
