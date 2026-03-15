@@ -83,7 +83,7 @@ async def github_login():
     github_url = (
         f"https://github.com/login/oauth/authorize?"
         f"client_id={os.getenv('GITHUB_CLIENT_ID')}&"
-        f"redirect_uri=http://localhost:5173/login&"
+        f"redirect_uri=https://codetrack-10l2.onrender.com/login&"
         f"scope=repo user:email"
     )
     return {"url": github_url}
