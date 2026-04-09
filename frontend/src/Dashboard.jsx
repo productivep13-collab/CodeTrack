@@ -52,7 +52,7 @@ export default function Dashboard() {
         if (!confirm('Delete this project? This cannot be undone.')) return;
         setDeletingId(id);
         try {
-            const res = await fetch('http://127.0.0.1:8000/deleteproject', {
+            const res = await fetch('https://codetrack-10l2.onrender.com/deleteproject', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, id })
