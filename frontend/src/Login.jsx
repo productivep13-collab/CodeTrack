@@ -45,20 +45,21 @@ export default function Login() {
     }, [searchParams, navigate]);
     
     const handleGoogleSuccess = async (credentialResponse) => {
-        const decoded = jwtDecode(credentialResponse.credential);
-        const response = await fetch('https://codetrack-10l2.onrender.com/auth/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: decoded.email })
-        });
-        const data = await response.json();
-        if (data.token) {
-            localStorage.setItem('token', data.token);
-            navigate(data.is_new_user ? '/coderlog' : '/dashboard');
-        } else {
-            alert('Login failed - no token received');
-        }
-    };
+    const decoded = jwtDecode(credentialResponse.credential);
+    const response = await fetch('https://codetrack-10l2.onrender.com/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: decoded.email })
+    });
+    const data = await response.json();
+    if (data.token) {
+        localStorage.setItem('token', data.token);
+        navigate(data.is_new_user ? '/coderlog' : '/dashboard');
+        window.location.reload();   // ✅ add this line
+    } else {
+        alert('Login failed - no token received');
+    }
+};
 
     const handleGitHubLogin = async () => {
         const response = await fetch('https://codetrack-10l2.onrender.com/auth/github/login');
