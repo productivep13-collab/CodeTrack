@@ -103,10 +103,8 @@ export default function Login() {
                 <div style={styles.methods}>
                     <div style={styles.googleWrapper}>
                         <GoogleLogin
-  onSuccess={handleGoogleSuccess}   // keep for fallback, but redirect mode won't call it
+  onSuccess={handleGoogleSuccess}
   onError={() => alert('Login Failed')}
-  ux_mode="redirect"
-  redirect_uri={`${window.location.origin}/login`}
   theme="filled_blue"
   size="large"
   width="300"
