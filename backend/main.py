@@ -184,8 +184,8 @@ class CreateProjectRequest(BaseModel):
     token: str
     name: str
     description: str
-    repo_name: str
-    repo_url: str
+    repo_name: Optional[str] = None
+    repo_url: Optional[str] = None
     project_type: Optional[str] = None
     required_features: Optional[str] = None
     deadline: Optional[str] = None
