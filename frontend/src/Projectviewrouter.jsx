@@ -13,7 +13,8 @@ export default function Projectviewrouter() {
     const [showLinkRepo, setShowLinkRepo] = useState(false);
     
     useEffect(() => {
-        Promise.all([fetchUserRole(), checkRepoStatus()]).finally(() => setLoading(false));
+        fetchUserRole();
+        checkRepoStatus();
     }, []);
     
     async function fetchUserRole() {
@@ -23,11 +24,14 @@ export default function Projectviewrouter() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
             });
+            
             const data = await response.json();
             setUserRole(data.role);
         } catch (error) {
             console.error('Error fetching user role:', error);
             setUserRole('freelancer');
+        } finally {
+            setLoading(false);
         }
     }
     
@@ -41,8 +45,11 @@ export default function Projectviewrouter() {
                     project_id: parseInt(id) 
                 })
             });
+            
             const data = await response.json();
             setRepoStatus(data);
+            
+            // Auto-show link modal if freelancer and no repo
             if (data.can_link_repo && !data.has_repo) {
                 setShowLinkRepo(true);
             }
@@ -59,6 +66,7 @@ export default function Projectviewrouter() {
         );
     }
     
+    // Show link repo modal if needed
     if (showLinkRepo && repoStatus?.can_link_repo && !repoStatus?.has_repo) {
         return (
             <LinkRepo 
@@ -66,13 +74,14 @@ export default function Projectviewrouter() {
                 token={token}
                 onSuccess={() => {
                     setShowLinkRepo(false);
-                    window.location.reload();
+                    window.location.reload(); // Reload to fetch project with new repo
                 }}
                 onCancel={() => setShowLinkRepo(false)}
             />
         );
     }
     
+    // Show appropriate view based on role
     if (userRole === 'client') {
         return <Clientdashboard />;
     } else {
