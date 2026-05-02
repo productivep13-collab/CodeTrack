@@ -105,33 +105,17 @@ export default function Clientdashboard() {
     }
 
     async function inviteMember() {
-        if (!memberName.trim() || !memberRole) {
-            alert("Please enter member name and select a role");
-            return;
-        }
+        if (!memberName.trim() || !memberRole) { alert("Please enter name and select a role"); return; }
         try {
-            const response = await fetch('https://codetrack-10l2.onrender.com/addmember', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token,
-                    name: memberName,
-                    id: parseInt(id),
-                    role: memberRole
-                })
+            const res = await fetch("https://codetrack-10l2.onrender.com/addmember", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, name: memberName, id: parseInt(id), role: memberRole })
             });
-            const data = await response.json();
-            if (data.success) {
-                alert('Member added successfully!');
-                setShowInviteModal(false);
-                setMemberName("");
-                setMemberRole("");
-            } else {
-                alert('Failed to add member');
-            }
-        } catch (e) {
-            alert('Failed to add member');
-        }
+            const data = await res.json();
+            if (data.success) { alert("Member added!"); setShowInviteModal(false); setMemberName(""); setMemberRole(""); }
+            else alert("Failed to add member");
+        } catch(e) { alert("Failed to add member"); }
     }
 
     async function refreshData() {
@@ -255,13 +239,6 @@ export default function Clientdashboard() {
                     </div>
                 )}
 
-                <button onClick={() => setShowInviteModal(true)} style={s.inviteBtn} className="invite-btn">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Invite Member
-                </button>
-
                 <nav style={s.nav}>
                     {[
                         { key: 'overview', label: 'Overview', icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
@@ -278,6 +255,10 @@ export default function Clientdashboard() {
                     ))}
                 </nav>
 
+                <button onClick={() => setShowInviteModal(true)} style={s.inviteBtn}>
+                    + Invite Member
+                </button>
+
                 <button onClick={refreshData} disabled={refreshing} style={s.syncBtn} className="sync-btn">
                     <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
                         style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
@@ -287,38 +268,21 @@ export default function Clientdashboard() {
                 </button>
             </aside>
 
-            {/* ── INVITE MEMBER MODAL ── */}
             {showInviteModal && (
-                <div style={s.modalOverlay}>
-                    <div style={s.modalCard}>
-                        <h2 style={s.modalTitle}>Invite Team Member</h2>
-                        <div style={s.modalField}>
-                            <label style={s.modalLabel}>Member Name</label>
-                            <input
-                                type="text"
-                                value={memberName}
-                                onChange={e => setMemberName(e.target.value)}
-                                placeholder="Enter name"
-                                style={s.modalInput}
-                                className="chat-input"
-                            />
+                <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100}}>
+                    <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:380,boxShadow:"0 8px 40px rgba(0,0,0,0.18)"}}>
+                        <h2 style={{margin:"0 0 20px",fontSize:18,fontWeight:800,color:"#111827"}}>Invite Member</h2>
+                        <label style={{fontSize:12,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>Name</label>
+                        <input type="text" value={memberName} onChange={e=>setMemberName(e.target.value)} placeholder="Enter their name"
+                            style={{width:"100%",margin:"8px 0 16px",border:"1px solid #e5e7eb",borderRadius:9,padding:"10px 13px",fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}} />
+                        <label style={{fontSize:12,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>Role</label>
+                        <div style={{display:"flex",gap:8,margin:"8px 0 20px"}}>
+                            <button onClick={()=>setMemberRole("client")} style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid",borderColor:memberRole==="client"?"#2563eb":"#e5e7eb",background:memberRole==="client"?"#eff6ff":"#f8fafc",color:memberRole==="client"?"#2563eb":"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}>Client</button>
+                            <button onClick={()=>setMemberRole("freelancer")} style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid",borderColor:memberRole==="freelancer"?"#2563eb":"#e5e7eb",background:memberRole==="freelancer"?"#eff6ff":"#f8fafc",color:memberRole==="freelancer"?"#2563eb":"#6b7280",fontWeight:600,fontSize:13,cursor:"pointer"}}>Freelancer</button>
                         </div>
-                        <div style={s.modalField}>
-                            <label style={s.modalLabel}>Role</label>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <button
-                                    onClick={() => setMemberRole("client")}
-                                    style={{ ...s.roleBtn, ...(memberRole === "client" ? s.roleBtnActive : {}) }}
-                                >Client</button>
-                                <button
-                                    onClick={() => setMemberRole("freelancer")}
-                                    style={{ ...s.roleBtn, ...(memberRole === "freelancer" ? s.roleBtnActive : {}) }}
-                                >Freelancer</button>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button onClick={() => { setShowInviteModal(false); setMemberName(""); setMemberRole(""); }} style={s.modalCancelBtn}>Cancel</button>
-                            <button onClick={inviteMember} style={s.modalConfirmBtn}>Invite</button>
+                        <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>{setShowInviteModal(false);setMemberName("");setMemberRole("");}} style={{flex:1,padding:"10px",borderRadius:9,border:"1px solid #e5e7eb",background:"#f8fafc",fontSize:13,fontWeight:600,color:"#6b7280",cursor:"pointer"}}>Cancel</button>
+                            <button onClick={inviteMember} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:"#16a34a",fontSize:13,fontWeight:600,color:"#fff",cursor:"pointer"}}>Invite</button>
                         </div>
                     </div>
                 </div>
@@ -528,17 +492,7 @@ const s = {
     navActive: { background: '#f8fafc', color: '#111827', fontWeight: 700 },
     navIndicator: { position: 'absolute', right: 10, width: 6, height: 6, borderRadius: '50%' },
     syncBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#111827', color: '#fff', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.01em', transition: 'background 0.15s' },
-    inviteBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.01em', transition: 'background 0.15s' },
-    modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-    modalCard: { background: '#fff', borderRadius: 16, padding: '28px 28px 24px', width: '100%', maxWidth: 400, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' },
-    modalTitle: { margin: '0 0 20px', fontSize: 18, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' },
-    modalField: { marginBottom: 16 },
-    modalLabel: { display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 },
-    modalInput: { width: '100%', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 9, padding: '10px 13px', fontSize: 13, color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' },
-    roleBtn: { flex: 1, padding: '9px', borderRadius: 9, border: '1.5px solid #e5e7eb', background: '#f8fafc', fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer', transition: 'all 0.12s' },
-    roleBtnActive: { background: '#eff6ff', borderColor: '#2563eb', color: '#2563eb' },
-    modalCancelBtn: { flex: 1, padding: '10px', borderRadius: 9, border: '1px solid #e5e7eb', background: '#f8fafc', fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer' },
-    modalConfirmBtn: { flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: '#16a34a', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' },
+    inviteBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s', marginBottom: 8 },
     main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' },
     tabContent: { flex: 1, padding: '40px 48px', maxWidth: 780 },
     contentHeader: { marginBottom: 32 },
@@ -600,7 +554,6 @@ const globalCss = `
   .back-link:hover { color: #111827 !important; }
   .nav-item:hover { background: #f8fafc !important; color: #374151 !important; }
   .sync-btn:hover { background: #1f2937 !important; }
-  .invite-btn:hover { background: #1d4ed8 !important; }
   .f-item:hover { background: #f8fafc !important; }
   .suggestion-btn:hover { background: #eff6ff !important; border-color: #93c5fd !important; }
   .chat-input:focus { border-color: #2563eb !important; background: #fff !important; }
