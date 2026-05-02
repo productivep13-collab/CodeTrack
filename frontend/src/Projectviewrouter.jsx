@@ -1,18 +1,38 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ProjectView from "./ProjectView";
+import Clientdashboard from "./Clientdashboard";
 import LinkRepo from "./LinkRepo";
 
 export default function Projectviewrouter() {
     const { id } = useParams();
     const token = localStorage.getItem('token');
+    const [userRole, setUserRole] = useState(null);
     const [loading, setLoading] = useState(true);
     const [repoStatus, setRepoStatus] = useState(null);
     const [showLinkRepo, setShowLinkRepo] = useState(false);
     
     useEffect(() => {
+        fetchUserRole();
         checkRepoStatus();
     }, []);
+    
+    async function fetchUserRole() {
+        try {
+            const response = await fetch('https://codetrack-10l2.onrender.com/auth/me', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await response.json();
+            setUserRole(data.role);
+        } catch (error) {
+            console.error('Error fetching user role:', error);
+            setUserRole('freelancer');
+        } finally {
+            setLoading(false);
+        }
+    }
     
     async function checkRepoStatus() {
         try {
@@ -24,18 +44,13 @@ export default function Projectviewrouter() {
                     project_id: parseInt(id) 
                 })
             });
-            
             const data = await response.json();
             setRepoStatus(data);
-            
-            // Auto-show link modal if freelancer and no repo
             if (data.can_link_repo && !data.has_repo) {
                 setShowLinkRepo(true);
             }
         } catch (error) {
             console.error('Error checking repo status:', error);
-        } finally {
-            setLoading(false);
         }
     }
     
@@ -47,7 +62,6 @@ export default function Projectviewrouter() {
         );
     }
     
-    // Show link repo modal if needed
     if (showLinkRepo && repoStatus?.can_link_repo && !repoStatus?.has_repo) {
         return (
             <LinkRepo 
@@ -55,13 +69,16 @@ export default function Projectviewrouter() {
                 token={token}
                 onSuccess={() => {
                     setShowLinkRepo(false);
-                    window.location.reload(); // Reload to fetch project with new repo
+                    window.location.reload();
                 }}
                 onCancel={() => setShowLinkRepo(false)}
             />
         );
     }
     
-    // All roles use the same project view
-    return <ProjectView />;
+    if (userRole === 'client') {
+        return <Clientdashboard />;
+    } else {
+        return <ProjectView />;
+    }
 }
