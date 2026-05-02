@@ -13,8 +13,7 @@ export default function Projectviewrouter() {
     const [showLinkRepo, setShowLinkRepo] = useState(false);
     
     useEffect(() => {
-        fetchUserRole();
-        checkRepoStatus();
+        Promise.all([fetchUserRole(), checkRepoStatus()]).finally(() => setLoading(false));
     }, []);
     
     async function fetchUserRole() {
@@ -29,8 +28,6 @@ export default function Projectviewrouter() {
         } catch (error) {
             console.error('Error fetching user role:', error);
             setUserRole('freelancer');
-        } finally {
-            setLoading(false);
         }
     }
     
