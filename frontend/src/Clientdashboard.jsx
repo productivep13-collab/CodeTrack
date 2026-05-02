@@ -255,6 +255,13 @@ export default function Clientdashboard() {
                     </div>
                 )}
 
+                <button onClick={() => setShowInviteModal(true)} style={s.inviteBtn} className="invite-btn">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Invite Member
+                </button>
+
                 <nav style={s.nav}>
                     {[
                         { key: 'overview', label: 'Overview', icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
@@ -270,13 +277,6 @@ export default function Clientdashboard() {
                         </button>
                     ))}
                 </nav>
-
-                <button onClick={() => setShowInviteModal(true)} style={s.inviteBtn} className="invite-btn">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Invite Member
-                </button>
 
                 <button onClick={refreshData} disabled={refreshing} style={s.syncBtn} className="sync-btn">
                     <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
