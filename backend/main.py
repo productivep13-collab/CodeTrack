@@ -635,106 +635,147 @@ async def ask_ai(req: AskAIRequest, db: Session = Depends(get_db)):
     
     ai_context = db.query(AIProjectContext).filter(AIProjectContext.project_id == project.id).first()
     
+    # Get recent commits from DB
     recent_commits = db.query(CommitExplanation).filter(
         CommitExplanation.project_id == project.id
-    ).order_by(CommitExplanation.commit_date.desc()).limit(10).all()
-    
-    commits_context = "\n".join([
-        f"- {c.commit_message} ({c.ai_explanation})"
-        for c in recent_commits
-    ])
+    ).order_by(CommitExplanation.commit_date.desc()).limit(20).all()
 
-    # --- NEW: fetch key files from GitHub ---
+    # ── REAL-TIME GITHUB DATA ──────────────────────────────────────────────
+    github_context = ""
+    latest_diff = ""
     code_context = ""
+
     if project.repo_name and user.github_token:
+        gh_headers = {
+            'Authorization': f'token {user.github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        base = f"https://api.github.com/repos/{user.github_name}/{project.repo_name}"
+
+        # 1. Fetch latest 5 commits with full metadata from GitHub right now
         try:
-            headers = {
-                'Authorization': f'token {user.github_token}',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-            # Get repo file tree (recursive, shallow)
-            tree_url = f"https://api.github.com/repos/{user.github_name}/{project.repo_name}/git/trees/HEAD?recursive=1"
-            tree_resp = requests.get(tree_url, headers=headers)
-            
+            commits_resp = requests.get(f"{base}/commits?per_page=5", headers=gh_headers)
+            if commits_resp.status_code == 200:
+                live_commits = commits_resp.json()
+                lines = []
+                for c in live_commits:
+                    sha = c['sha'][:7]
+                    msg = c['commit']['message'].split('\n')[0]
+                    author = c['commit']['author']['name']
+                    date = c['commit']['author']['date']
+                    lines.append(f"  [{sha}] {date} — {author}: {msg}")
+                github_context += "LATEST COMMITS (live from GitHub right now):\n" + "\n".join(lines) + "\n\n"
+
+                # 2. Get the full diff/patch of the most recent commit
+                latest_sha = live_commits[0]['sha']
+                diff_resp = requests.get(
+                    f"{base}/commits/{latest_sha}",
+                    headers={**gh_headers, 'Accept': 'application/vnd.github.v3.diff'}
+                )
+                if diff_resp.status_code == 200:
+                    diff_text = diff_resp.text[:4000]  # cap at 4000 chars
+                    latest_diff = f"FULL DIFF OF LATEST COMMIT [{latest_sha[:7]}]:\n```diff\n{diff_text}\n```\n\n"
+        except Exception as e:
+            print(f"Error fetching live commits: {e}")
+
+        # 3. Fetch actual file contents from the repo
+        try:
+            tree_resp = requests.get(f"{base}/git/trees/HEAD?recursive=1", headers=gh_headers)
             if tree_resp.status_code == 200:
                 tree = tree_resp.json().get("tree", [])
-                
-                # Pick important files: skip node_modules, .git, lock files, images
-                SKIP = {"node_modules", ".git", "dist", "build", "__pycache__", ".next"}
-                SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".lock", ".woff", ".ttf"}
-                PRIORITY_EXT = {".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".rb", ".php"}
-                
+
+                SKIP_DIRS = {"node_modules", ".git", "dist", "build", "__pycache__", ".next", "venv", ".venv"}
+                SKIP_EXT  = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
+                             ".lock", ".woff", ".ttf", ".eot", ".map", ".min.js"}
+                PRIORITY_EXT = {".py", ".js", ".ts", ".jsx", ".tsx", ".css",
+                                ".html", ".go", ".rs", ".java", ".rb", ".php", ".env.example"}
+
                 candidates = [
                     f for f in tree
                     if f["type"] == "blob"
-                    and not any(skip in f["path"] for skip in SKIP)
+                    and not any(skip in f["path"].split('/') for skip in SKIP_DIRS)
                     and not any(f["path"].endswith(ext) for ext in SKIP_EXT)
-                    and f.get("size", 99999) < 15000  # skip huge files
+                    and f.get("size", 99999) < 20000
                 ]
-                
-                # Prioritize source files, limit to 8 files, ~6000 chars total
+
+                # Sort: priority extensions first, then by size ascending
                 candidates.sort(key=lambda f: (
                     0 if any(f["path"].endswith(e) for e in PRIORITY_EXT) else 1,
                     f.get("size", 0)
                 ))
-                
+
+                import base64
                 total_chars = 0
-                MAX_CHARS = 6000
-                fetched_files = []
-                
-                for file in candidates[:12]:
+                MAX_CHARS = 8000  # generous budget
+                fetched = []
+
+                for file in candidates[:20]:
                     if total_chars >= MAX_CHARS:
                         break
-                    file_url = f"https://api.github.com/repos/{user.github_name}/{project.repo_name}/contents/{file['path']}"
-                    file_resp = requests.get(file_url, headers=headers)
-                    if file_resp.status_code == 200:
-                        import base64
-                        content_b64 = file_resp.json().get("content", "")
-                        try:
-                            content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
-                            # Truncate per-file to avoid one file eating everything
-                            snippet = content[:1500]
-                            fetched_files.append(f"### {file['path']}\n```\n{snippet}\n```")
+                    try:
+                        file_resp = requests.get(f"{base}/contents/{file['path']}", headers=gh_headers)
+                        if file_resp.status_code == 200:
+                            b64 = file_resp.json().get("content", "")
+                            content = base64.b64decode(b64).decode("utf-8", errors="replace")
+                            # Per-file cap so one huge file doesn't eat everything
+                            snippet = content[:2000]
+                            fetched.append(f"### FILE: {file['path']}\n```\n{snippet}\n{'...(truncated)' if len(content)>2000 else ''}\n```")
                             total_chars += len(snippet)
-                        except Exception:
-                            pass
-                
-                if fetched_files:
-                    code_context = "\n\n".join(fetched_files)
+                    except Exception:
+                        pass
+
+                if fetched:
+                    code_context = "ACTUAL CODEBASE (fetched live):\n\n" + "\n\n".join(fetched)
         except Exception as e:
-            print(f"Could not fetch code context: {e}")
-    # --- END new section ---
+            print(f"Error fetching codebase: {e}")
 
-    context = f"""PROJECT: {project.name}
+    # ── BUILD FINAL CONTEXT ───────────────────────────────────────────────
+    db_commits_summary = "\n".join([
+        f"  [{c.commit_sha[:7]}] {c.commit_date} — {c.commit_author}: {c.commit_message} | AI note: {c.ai_explanation}"
+        for c in recent_commits
+    ])
+
+    full_context = f"""You are an AI assistant for a software project. You have FULL real-time access to this project's codebase and commit history. Answer questions specifically and accurately using the data below.
+
+PROJECT: {project.name}
 DESCRIPTION: {project.description}
-
-AI UNDERSTANDING: {ai_context.ai_understanding if ai_context else 'Not analyzed yet'}
-CURRENT PROGRESS: {ai_context.current_progress if ai_context else 0}%
-COMPLETED FEATURES: {ai_context.completed_features if ai_context else 'None yet'}
+PROGRESS: {ai_context.current_progress if ai_context else 0}%
+COMPLETED FEATURES: {ai_context.completed_features if ai_context else 'None'}
 PENDING FEATURES: {ai_context.pending_features if ai_context else 'Unknown'}
+TECH STACK: {ai_context.technical_stack if ai_context else 'Unknown'}
 
-RECENT COMMITS:
-{commits_context}
+{github_context}
+{latest_diff}
+COMMIT HISTORY (from database, with AI explanations):
+{db_commits_summary}
 
-{"CODEBASE SNIPPETS:" + chr(10) + code_context if code_context else ""}
+{code_context}
 
-USER QUESTION: {req.question}
+IMPORTANT RULES:
+- If asked about background color, colors, styling — look in CSS files, index.html, or .jsx/.tsx files above and give the EXACT value
+- If asked about the latest commit — use the LATEST COMMITS section above and give the exact SHA, message, author, and date
+- If asked about a specific file — quote the relevant lines from ACTUAL CODEBASE above
+- Never say "I don't have access" — you DO have the real code above
+- Be specific: give exact values, line numbers, file names, commit SHAs
 
-Answer clearly with sections/paragraphs where helpful. Reference specific files or code when relevant."""
+USER QUESTION: {req.question}"""
 
     try:
         response = groq_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a helpful AI assistant explaining a software project. When answering, use clear structure: short paragraphs, bold key points with **asterisks**, and newlines between sections. Be specific and reference actual files and code when you can."},
-                {"role": "user", "content": context}
+                {
+                    "role": "system",
+                    "content": "You are a precise, technical AI assistant with full access to a real codebase. Always give specific, accurate answers by referencing the exact data provided. Quote file contents, commit SHAs, exact CSS values, etc. Never be vague."
+                },
+                {"role": "user", "content": full_context}
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=600  # bumped slightly for richer answers
+            temperature=0.2,  # low temp = more factual, less hallucination
+            max_tokens=700
         )
-        
+
         answer = response.choices[0].message.content
-        
+
         chat = AIChatHistory(
             project_id=project.id,
             user_id=user.id,
@@ -743,13 +784,13 @@ Answer clearly with sections/paragraphs where helpful. Reference specific files 
         )
         db.add(chat)
         db.commit()
-        
+
         return {"answer": answer}
-        
+
     except Exception as e:
         print(f"Error in AI chat: {str(e)}")
         raise HTTPException(status_code=500, detail="AI service error")
-
+        
 class GetChatHistoryRequest(BaseModel):
     token: str
     project_id: int
