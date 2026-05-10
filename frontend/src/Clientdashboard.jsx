@@ -172,6 +172,27 @@ export default function Clientdashboard() {
         "What features are still pending?",
         "Explain the latest changes"
     ];
+    function formatAIMessage(text) {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+        // Bold: **text**
+        const parts = line.split(/\*\*(.*?)\*\*/g).map((part, j) =>
+            j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+        );
+        // Empty line = spacer
+        if (!line.trim()) return <div key={i} style={{ height: 8 }} />;
+        // Bullet lines
+        if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
+            return (
+                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
+                    <span style={{ color: '#9ca3af', flexShrink: 0 }}>•</span>
+                    <span>{parts}</span>
+                </div>
+            );
+        }
+        return <div key={i} style={{ marginBottom: 2 }}>{parts}</div>;
+    });
+}
 
     return (
         <div style={s.root}>
@@ -427,7 +448,7 @@ export default function Clientdashboard() {
                                                 {chat.answer === null ? (
                                                     <div style={s.aiBubble}>Thinking…</div>
                                                 ) : (
-                                                    <div style={s.aiBubble}>{chat.answer}</div>
+                                                    <div style={s.aiBubble}>{formatAIMessage(chat.answer)}</div>
                                                 )}
                                             </div>
                                         </div>
