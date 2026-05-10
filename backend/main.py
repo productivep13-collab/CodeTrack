@@ -635,7 +635,6 @@ async def ask_ai(req: AskAIRequest, db: Session = Depends(get_db)):
     
     ai_context = db.query(AIProjectContext).filter(AIProjectContext.project_id == project.id).first()
     
-    # Get recent commits for context
     recent_commits = db.query(CommitExplanation).filter(
         CommitExplanation.project_id == project.id
     ).order_by(CommitExplanation.commit_date.desc()).limit(10).all()
@@ -644,8 +643,68 @@ async def ask_ai(req: AskAIRequest, db: Session = Depends(get_db)):
         f"- {c.commit_message} ({c.ai_explanation})"
         for c in recent_commits
     ])
-    
-    # Build context for AI
+
+    # --- NEW: fetch key files from GitHub ---
+    code_context = ""
+    if project.repo_name and user.github_token:
+        try:
+            headers = {
+                'Authorization': f'token {user.github_token}',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+            # Get repo file tree (recursive, shallow)
+            tree_url = f"https://api.github.com/repos/{user.github_name}/{project.repo_name}/git/trees/HEAD?recursive=1"
+            tree_resp = requests.get(tree_url, headers=headers)
+            
+            if tree_resp.status_code == 200:
+                tree = tree_resp.json().get("tree", [])
+                
+                # Pick important files: skip node_modules, .git, lock files, images
+                SKIP = {"node_modules", ".git", "dist", "build", "__pycache__", ".next"}
+                SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".lock", ".woff", ".ttf"}
+                PRIORITY_EXT = {".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".rb", ".php"}
+                
+                candidates = [
+                    f for f in tree
+                    if f["type"] == "blob"
+                    and not any(skip in f["path"] for skip in SKIP)
+                    and not any(f["path"].endswith(ext) for ext in SKIP_EXT)
+                    and f.get("size", 99999) < 15000  # skip huge files
+                ]
+                
+                # Prioritize source files, limit to 8 files, ~6000 chars total
+                candidates.sort(key=lambda f: (
+                    0 if any(f["path"].endswith(e) for e in PRIORITY_EXT) else 1,
+                    f.get("size", 0)
+                ))
+                
+                total_chars = 0
+                MAX_CHARS = 6000
+                fetched_files = []
+                
+                for file in candidates[:12]:
+                    if total_chars >= MAX_CHARS:
+                        break
+                    file_url = f"https://api.github.com/repos/{user.github_name}/{project.repo_name}/contents/{file['path']}"
+                    file_resp = requests.get(file_url, headers=headers)
+                    if file_resp.status_code == 200:
+                        import base64
+                        content_b64 = file_resp.json().get("content", "")
+                        try:
+                            content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
+                            # Truncate per-file to avoid one file eating everything
+                            snippet = content[:1500]
+                            fetched_files.append(f"### {file['path']}\n```\n{snippet}\n```")
+                            total_chars += len(snippet)
+                        except Exception:
+                            pass
+                
+                if fetched_files:
+                    code_context = "\n\n".join(fetched_files)
+        except Exception as e:
+            print(f"Could not fetch code context: {e}")
+    # --- END new section ---
+
     context = f"""PROJECT: {project.name}
 DESCRIPTION: {project.description}
 
@@ -654,34 +713,34 @@ CURRENT PROGRESS: {ai_context.current_progress if ai_context else 0}%
 COMPLETED FEATURES: {ai_context.completed_features if ai_context else 'None yet'}
 PENDING FEATURES: {ai_context.pending_features if ai_context else 'Unknown'}
 
-RECENT WORK:
+RECENT COMMITS:
 {commits_context}
+
+{"CODEBASE SNIPPETS:" + chr(10) + code_context if code_context else ""}
 
 USER QUESTION: {req.question}
 
-Answer the question helpfully, referencing specific commits or features when relevant."""
+Answer clearly with sections/paragraphs where helpful. Reference specific files or code when relevant."""
 
     try:
         response = groq_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a helpful AI assistant explaining a software project to a client. Be clear, friendly, and specific."},
+                {"role": "system", "content": "You are a helpful AI assistant explaining a software project. When answering, use clear structure: short paragraphs, bold key points with **asterisks**, and newlines between sections. Be specific and reference actual files and code when you can."},
                 {"role": "user", "content": context}
             ],
             model="llama-3.3-70b-versatile",
             temperature=0.7,
-            max_tokens=400
+            max_tokens=600  # bumped slightly for richer answers
         )
         
         answer = response.choices[0].message.content
         
-        # Save to chat history
         chat = AIChatHistory(
             project_id=project.id,
             user_id=user.id,
             user_question=req.question,
             ai_response=answer
         )
-        
         db.add(chat)
         db.commit()
         
@@ -690,7 +749,6 @@ Answer the question helpfully, referencing specific commits or features when rel
     except Exception as e:
         print(f"Error in AI chat: {str(e)}")
         raise HTTPException(status_code=500, detail="AI service error")
-
 
 class GetChatHistoryRequest(BaseModel):
     token: str
