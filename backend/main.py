@@ -1323,3 +1323,7 @@ def deletepro(payload: DelPro, db: Session = Depends(get_db)):
     
     db.commit()
     return {"message": "Done!"}
+    
+@app.get("/health")
+def health():
+    return {"status": "ok"}
